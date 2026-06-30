@@ -85,7 +85,11 @@
 #	define HL_XBS
 #endif
 
-#if defined(HL_PS) || defined(HL_NX) || defined(HL_XBO) || defined(HL_XBS) || defined(HL_OS)
+#ifdef __PSP__
+#	define HL_PSP
+#endif
+
+#if defined(HL_PS) || defined(HL_NX) || defined(HL_XBO) || defined(HL_XBS) || defined(HL_OS) || defined(HL_PSP)
 #	define HL_CONSOLE
 #endif
 
@@ -244,7 +248,7 @@ typedef wchar_t	uchar;
 #	define USTR(str)	L##str
 #else
 #	include <stdarg.h>
-#if defined(HL_IOS) || defined(HL_TVOS) || defined(HL_MAC)
+#if defined(HL_IOS) || defined(HL_TVOS) || defined(HL_MAC) || defined(HL_PSP)
 #include <stddef.h>
 #include <stdint.h>
 #if !defined(__cplusplus) || (__cplusplus < 201103L && !defined(_LIBCPP_VERSION))

@@ -21,10 +21,10 @@
  */
 #include <hl.h>
 
-#ifdef HL_CONSOLE
+#if defined(HL_CONSOLE) && !defined(HL_PSP)
 #	include <posix/posix.h>
 #endif
-#if !defined(HL_CONSOLE) || defined(HL_WIN_DESKTOP)
+#if !defined(HL_CONSOLE) || defined(HL_WIN_DESKTOP) || defined(HL_PSP)
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,7 +58,9 @@ typedef struct _stat32 pstat;
 #	include <limits.h>
 #	include <sys/time.h>
 #	include <dirent.h>
+#ifndef HL_PSP
 #	include <termios.h>
+#endif
 #	include <sys/times.h>
 #	include <sys/wait.h>
 #	include <locale.h>
@@ -97,6 +99,8 @@ HL_PRIM bool hl_sys_utf8_path() {
 
 HL_PRIM vbyte *hl_sys_string() {
 #if defined(HL_CONSOLE)
+	return (vbyte*)USTR("PSP");
+#elif defined(HL_CONSOLE)
 	return (vbyte*)sys_platform_name();
 #elif defined(HL_WIN) || defined(HL_CYGWIN) || defined(HL_MINGW)
 	return (vbyte*)USTR("Windows");
@@ -126,7 +130,7 @@ HL_PRIM vbyte *hl_sys_locale() {
 	wchar_t loc[LOCALE_NAME_MAX_LENGTH];
 	int len = GetSystemDefaultLocaleName(loc,LOCALE_NAME_MAX_LENGTH);
 	return len == 0 ? NULL : hl_copy_bytes((vbyte*)loc,(len+1)*2);
-#elif defined(HL_CONSOLE)
+#elif defined(HL_CONSOLE) && !defined(HL_PSP)
 	return (vbyte*)sys_get_user_lang();
 #else
 	return (vbyte*)getenv("LANG");
@@ -616,6 +620,8 @@ HL_PRIM vbyte *hl_sys_exe_path() {
 	if( _NSGetExecutablePath(path, &path_len) )
 		return NULL;
 	return (vbyte*)pstrdup(path,-1);
+#elif defined(HL_PSP)
+	return NULL;
 #elif defined(HL_CONSOLE)
 	return sys_exe_path();
 #else
@@ -637,7 +643,7 @@ HL_PRIM double hl_sys_process_memory() {
 	PROCESS_MEMORY_COUNTERS inf;
 	GetProcessMemoryInfo(GetCurrentProcess(),&inf,sizeof(inf));
 	return (double)inf.WorkingSetSize;
-#elif defined(HL_CONSOLE)
+#elif defined(HL_CONSOLE) && !defined(HL_PSP)
 	return sys_process_memory();
 #else
 	return 0.;

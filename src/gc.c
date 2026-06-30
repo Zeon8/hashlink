@@ -25,7 +25,9 @@
 #	include <windows.h>
 #else
 #	include <sys/types.h>
+#ifndef HL_PSP
 #	include <sys/mman.h>
+#endif
 #endif
 
 #if defined(HL_EMSCRIPTEN)

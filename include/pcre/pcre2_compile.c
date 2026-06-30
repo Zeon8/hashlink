@@ -1430,7 +1430,11 @@ for (p = *ptrptr;; p++)
 /* The only error from read_number() is for a number that is too big. */
 
 p = *ptrptr;
+#ifdef __PSP__
+if (!read_number(&p, ptrend, -1, MAX_REPEAT_COUNT, ERR5, (int*)&min, errorcodeptr))
+#else
 if (!read_number(&p, ptrend, -1, MAX_REPEAT_COUNT, ERR5, &min, errorcodeptr))
+#endif
   goto EXIT;
 
 if (*p == CHAR_RIGHT_CURLY_BRACKET)
@@ -1442,8 +1446,13 @@ else
   {
   if (*(++p) != CHAR_RIGHT_CURLY_BRACKET)
     {
+#ifdef __PSP__
+    if (!read_number(&p, ptrend, -1, MAX_REPEAT_COUNT, ERR5, (int*)&max,
+        errorcodeptr))
+#else
     if (!read_number(&p, ptrend, -1, MAX_REPEAT_COUNT, ERR5, &max,
         errorcodeptr))
+#endif
       goto EXIT;
     if (max < min)
       {

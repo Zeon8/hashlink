@@ -22,7 +22,7 @@
 #include <hl.h>
 
 #include <string.h>
-#ifdef HL_CONSOLE
+#if defined(HL_CONSOLE) && !defined(HL_PSP)
 #	include <posix/posix.h>
 #else
 #	include <time.h>

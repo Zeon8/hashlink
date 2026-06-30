@@ -26,7 +26,7 @@
 #	undef _GUID
 #	include <windows.h>
 #	include <process.h>
-#elif defined(HL_CONSOLE)
+#elif defined(HL_CONSOLE) && !defined(HL_PSP)
 #	include <posix/posix.h>
 #else
 #	include <sys/time.h>

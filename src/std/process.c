@@ -23,7 +23,9 @@
 #include "hlsystem.h"
 
 #if defined(HL_CONSOLE)
+#ifndef HL_PSP
 #	include <posix/posix.h>
+#endif
 #elif !defined(HL_WIN)
 #	include <sys/types.h>
 #	include <unistd.h>
@@ -59,7 +61,7 @@ struct _vprocess {
 };
 
 static void process_finalize( vprocess *p ) {
-#	ifdef HL_WIN
+#	if defined(HL_WIN)
 	CloseHandle(p->eread);
 	CloseHandle(p->oread);
 	if (p->iwrite != NULL) {
@@ -67,6 +69,7 @@ static void process_finalize( vprocess *p ) {
 	}
 	CloseHandle(p->pinf.hProcess);
 	CloseHandle(p->pinf.hThread);
+#	elif defined(HL_PSP)
 #	else
 	close(p->eread);
 	close(p->oread);
@@ -76,6 +79,9 @@ static void process_finalize( vprocess *p ) {
 
 HL_PRIM vprocess *hl_process_run( vbyte *cmd, varray *vargs, bool detached ) {
 	vprocess *p;
+#ifdef HL_PSP
+	return NULL;
+#else
 #	ifdef HL_WIN
 	SECURITY_ATTRIBUTES sattr;
 	STARTUPINFO sinf;
@@ -140,7 +146,7 @@ HL_PRIM vprocess *hl_process_run( vbyte *cmd, varray *vargs, bool detached ) {
 	if( pipe(input) || pipe(output) || pipe(error) )
 		return NULL;
 	p = (vprocess*)hl_gc_alloc_finalizer(sizeof(vprocess));
-#ifdef HL_TVOS
+#ifdef HL_TVOS 
 	hl_error("hl_process_run() not available for this platform");
 	p->pid = -1;
 #else
@@ -181,9 +187,13 @@ HL_PRIM vprocess *hl_process_run( vbyte *cmd, varray *vargs, bool detached ) {
 #	endif
 	p->finalize = process_finalize;
 	return p;
+#endif
 }
 
 HL_PRIM int hl_process_stdout_read( vprocess *p, vbyte *str, int pos, int len ) {
+#ifdef HL_PSP
+	return -1;
+#else
 #	ifdef HL_WIN
 	DWORD nbytes;
 	if( !ReadFile(p->oread,str+pos,len,&nbytes,NULL) )
@@ -198,9 +208,13 @@ HL_PRIM int hl_process_stdout_read( vprocess *p, vbyte *str, int pos, int len ) 
 		return -1;
 	return nbytes;
 #	endif
+#endif
 }
 
 HL_PRIM int hl_process_stderr_read( vprocess *p, vbyte *str, int pos, int len ) {
+#ifdef HL_PSP
+	return -1;
+#else
 #	ifdef HL_WIN
 	DWORD nbytes;
 	if( !ReadFile(p->eread,str+pos,len,&nbytes,NULL) )
@@ -215,9 +229,13 @@ HL_PRIM int hl_process_stderr_read( vprocess *p, vbyte *str, int pos, int len ) 
 		return -1;
 	return nbytes;
 #	endif
+#endif
 }
 
 HL_PRIM int hl_process_stdin_write( vprocess *p, vbyte *str, int pos, int len ) {
+#ifdef HL_PSP
+	return -1;
+#else
 #	ifdef HL_WIN
 	DWORD nbytes;
 	if( !WriteFile(p->iwrite,str+pos,len,&nbytes,NULL) )
@@ -232,9 +250,13 @@ HL_PRIM int hl_process_stdin_write( vprocess *p, vbyte *str, int pos, int len ) 
 		return -1;
 	return nbytes;
 #	endif
+#	endif
 }
 
 HL_PRIM bool hl_process_stdin_close( vprocess *p ) {
+#ifdef HL_PSP
+	return false;
+#else
 #	ifdef HL_WIN
 	if( !CloseHandle(p->iwrite) )
 		return false;
@@ -245,9 +267,13 @@ HL_PRIM bool hl_process_stdin_close( vprocess *p ) {
 	p->iwrite = -1;
 #	endif
 	return true;
+#endif
 }
 
 HL_PRIM int hl_process_exit( vprocess *p, bool *running ) {
+#ifdef HL_PSP
+	return -1;
+#else
 #	ifdef HL_WIN
 	DWORD rval;
 	if( !running )
@@ -278,6 +304,7 @@ HL_PRIM int hl_process_exit( vprocess *p, bool *running ) {
 	}
 	return WEXITSTATUS(rval);
 #	endif
+#endif
 }
 
 HL_PRIM int hl_process_pid( vprocess *p ) {
@@ -289,12 +316,17 @@ HL_PRIM int hl_process_pid( vprocess *p ) {
 }
 
 HL_PRIM void hl_process_close( vprocess *p ) {
+#ifdef HL_PSP
+#else
 	if( !p->finalize ) return;
 	p->finalize = NULL;
 	process_finalize(p);
+#endif
 }
 
 HL_PRIM void hl_process_kill( vprocess *p ) {
+#ifdef HL_PSP
+#else
 #	ifdef HL_WIN
 	TerminateProcess(p->pinf.hProcess,0xCDCDCDCD);
 #   elif defined(HL_IOS) || defined(HL_TVOS)
@@ -302,6 +334,7 @@ HL_PRIM void hl_process_kill( vprocess *p ) {
 #	else
 	kill(p->pid,9);
 #	endif
+#endif
 }
 
 #define _PROCESS _ABSTRACT(hl_process)
