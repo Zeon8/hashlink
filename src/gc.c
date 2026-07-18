@@ -34,6 +34,10 @@
 #	include <emscripten/heap.h>
 #endif
 
+#ifdef HL_PSP
+	#include <malloc.h>
+#endif
+
 #if defined(HL_VCC)
 #define DRAM_PREFETCH(addr) _mm_prefetch(p, 1)
 #elif defined(HL_CLANG) || defined (HL_GCC)
@@ -1166,10 +1170,11 @@ HL_PRIM void hl_free_executable_memory( void *c, int size ) {
 #endif
 }
 
-#if defined(HL_CONSOLE)
+#ifndef HL_PSP
+#	if defined(HL_CONSOLE)
 void *sys_alloc_align( int size, int align );
 void sys_free_align( void *ptr, int size );
-#elif !defined(HL_WIN)
+#	elif !defined(HL_WIN)
 static void *base_addr = (void*)0x40000000;
 typedef struct _pextra pextra;
 struct _pextra {
@@ -1178,7 +1183,8 @@ struct _pextra {
 	pextra *next;
 };
 static pextra *extra_pages = NULL;
-#define EXTRA_SIZE (GC_PAGE_SIZE + (4<<10))
+#	define EXTRA_SIZE (GC_PAGE_SIZE + (4<<10))
+#	endif
 #endif
 
 static void *gc_alloc_page_memory( int size ) {
@@ -1201,6 +1207,8 @@ static void *gc_alloc_page_memory( int size ) {
 	start_address += size + ((-size) & (GC_PAGE_SIZE - 1));
 #	endif
 	return ptr;
+#elif defined(HL_PSP)
+	return memalign(GC_PAGE_SIZE, size);
 #elif defined(HL_CONSOLE)
 	return sys_alloc_align(size, GC_PAGE_SIZE);
 #elif defined(HL_EMSCRIPTEN)
@@ -1255,6 +1263,8 @@ static void *gc_alloc_page_memory( int size ) {
 static void gc_free_page_memory( void *ptr, int size ) {
 #ifdef HL_WIN
 	VirtualFree(ptr, 0, MEM_RELEASE);
+#elif defined(HL_PSP)
+	free(ptr);
 #elif defined(HL_CONSOLE)
 	sys_free_align(ptr,size);
 #elif defined(HL_EMSCRIPTEN)

@@ -152,6 +152,10 @@
 #	define HL_TRACK_ENABLE
 #endif
 
+#ifdef HL_PSP
+#	define HL_NO_THREADS
+#endif
+
 #ifndef HL_NO_THREADS
 #	define HL_THREADS
 #	ifdef HL_VCC

@@ -98,7 +98,7 @@ HL_PRIM bool hl_sys_utf8_path() {
 }
 
 HL_PRIM vbyte *hl_sys_string() {
-#if defined(HL_CONSOLE)
+#if defined(HL_PSP)
 	return (vbyte*)USTR("PSP");
 #elif defined(HL_CONSOLE)
 	return (vbyte*)sys_platform_name();

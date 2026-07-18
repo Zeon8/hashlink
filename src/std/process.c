@@ -60,6 +60,7 @@ struct _vprocess {
 #endif
 };
 
+#ifndef HL_PSP
 static void process_finalize( vprocess *p ) {
 #	if defined(HL_WIN)
 	CloseHandle(p->eread);
@@ -69,17 +70,18 @@ static void process_finalize( vprocess *p ) {
 	}
 	CloseHandle(p->pinf.hProcess);
 	CloseHandle(p->pinf.hThread);
-#	elif defined(HL_PSP)
 #	else
 	close(p->eread);
 	close(p->oread);
 	close(p->iwrite);
-#	endif
+# 	endif
 }
+#endif
 
 HL_PRIM vprocess *hl_process_run( vbyte *cmd, varray *vargs, bool detached ) {
 	vprocess *p;
 #ifdef HL_PSP
+	hl_error("hl_process_run() not available for this platform");
 	return NULL;
 #else
 #	ifdef HL_WIN
@@ -192,6 +194,7 @@ HL_PRIM vprocess *hl_process_run( vbyte *cmd, varray *vargs, bool detached ) {
 
 HL_PRIM int hl_process_stdout_read( vprocess *p, vbyte *str, int pos, int len ) {
 #ifdef HL_PSP
+	hl_error("hl_process_stdout_read() not available for this platform");
 	return -1;
 #else
 #	ifdef HL_WIN
@@ -213,6 +216,7 @@ HL_PRIM int hl_process_stdout_read( vprocess *p, vbyte *str, int pos, int len ) 
 
 HL_PRIM int hl_process_stderr_read( vprocess *p, vbyte *str, int pos, int len ) {
 #ifdef HL_PSP
+	hl_error("hl_process_stderr_read() not available for this platform");
 	return -1;
 #else
 #	ifdef HL_WIN
@@ -234,6 +238,7 @@ HL_PRIM int hl_process_stderr_read( vprocess *p, vbyte *str, int pos, int len ) 
 
 HL_PRIM int hl_process_stdin_write( vprocess *p, vbyte *str, int pos, int len ) {
 #ifdef HL_PSP
+	hl_error("hl_process_stdin_write() not available for this platform");
 	return -1;
 #else
 #	ifdef HL_WIN
@@ -255,6 +260,7 @@ HL_PRIM int hl_process_stdin_write( vprocess *p, vbyte *str, int pos, int len ) 
 
 HL_PRIM bool hl_process_stdin_close( vprocess *p ) {
 #ifdef HL_PSP
+	hl_error("hl_process_stdin_close() not available for this platform");
 	return false;
 #else
 #	ifdef HL_WIN
@@ -272,6 +278,7 @@ HL_PRIM bool hl_process_stdin_close( vprocess *p ) {
 
 HL_PRIM int hl_process_exit( vprocess *p, bool *running ) {
 #ifdef HL_PSP
+	hl_error("hl_process_exit() not available for this platform");
 	return -1;
 #else
 #	ifdef HL_WIN
@@ -317,6 +324,7 @@ HL_PRIM int hl_process_pid( vprocess *p ) {
 
 HL_PRIM void hl_process_close( vprocess *p ) {
 #ifdef HL_PSP
+	hl_error("hl_process_exit() not available for this platform");
 #else
 	if( !p->finalize ) return;
 	p->finalize = NULL;
@@ -326,6 +334,7 @@ HL_PRIM void hl_process_close( vprocess *p ) {
 
 HL_PRIM void hl_process_kill( vprocess *p ) {
 #ifdef HL_PSP
+	hl_error("hl_process_kill() not available for this platform");
 #else
 #	ifdef HL_WIN
 	TerminateProcess(p->pinf.hProcess,0xCDCDCDCD);

@@ -38,10 +38,7 @@
 
 #else
 
-#ifdef HL_CONSOLE
-#ifndef HL_PSP
-#	include <posix/posix.h>
-#endif
+#if defined(HL_CONSOLE) && !defined(HL_PSP)
 #else
 #	ifndef _GNU_SOURCE
 #	define _GNU_SOURCE
@@ -55,7 +52,9 @@
 #	include <arpa/inet.h>
 #	include <unistd.h>
 #	include <netdb.h>
+#	ifndef HL_PSP
 #	include <poll.h>
+#	endif
 #	include <fcntl.h>
 #	include <errno.h>
 #	include <stdio.h>
@@ -86,11 +85,16 @@
 #	define MSG_NOSIGNAL 0
 #endif
 
+#ifdef HL_PSP
+#define MSG_NOSIGNAL 0
+#define INADDR_NONE ((unsigned int)-1) 
+#endif
+
 typedef struct _hl_socket {
 	SOCKET sock;
 } hl_socket;
 
-#ifndef HL_PSP
+
 static int block_error() {
 #ifdef HL_WIN
 	int err = WSAGetLastError();
@@ -101,11 +105,8 @@ static int block_error() {
 		return -1;
 	return -2;
 }
-#endif
 
 HL_PRIM void hl_socket_init() {
-#ifdef HL_PSP
-#else
 #ifdef HL_WIN
 	static bool init_done = false;
 	static WSADATA init_data;
@@ -114,12 +115,9 @@ HL_PRIM void hl_socket_init() {
 		init_done = true;
 	}
 #endif
-#endif
 }
 
 HL_PRIM hl_socket *hl_socket_new( bool udp ) {
-#ifdef HL_PSP
-#else
 	SOCKET s;
 	if( udp )
 		s = socket(AF_INET,SOCK_DGRAM,0);
@@ -142,32 +140,22 @@ HL_PRIM hl_socket *hl_socket_new( bool udp ) {
 		hs->sock = s;
 		return hs;
 	}
-#endif
 }
 
 HL_PRIM bool hl_socket_set_broadcast( hl_socket *s, bool b ) {
-#ifdef HL_PSP
-#else
 	int broadcast = b;
 	if( !s )
 		return false;
 	return setsockopt(s->sock,SOL_SOCKET,SO_BROADCAST,(char*)&broadcast,sizeof(broadcast)) == 0;
-#endif
 }
 
 HL_PRIM void hl_socket_close( hl_socket *s ) {
-#ifdef HL_PSP
-#else
 	if( !s ) return;
 	closesocket(s->sock);
 	s->sock = INVALID_SOCKET;
-#endif
 }
 
 HL_PRIM int hl_socket_send_char( hl_socket *s, int c ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	char cc;
 	cc = (char)(unsigned char)c;
 	if( !s )
@@ -175,13 +163,9 @@ HL_PRIM int hl_socket_send_char( hl_socket *s, int c ) {
 	if( send(s->sock,&cc,1,MSG_NOSIGNAL) == SOCKET_ERROR )
 		return block_error();
 	return 1;
-#endif
 }
 
 HL_PRIM int hl_socket_send( hl_socket *s, vbyte *buf, int pos, int len ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	int r;
 	if( !s )
 		return -2;
@@ -189,14 +173,10 @@ HL_PRIM int hl_socket_send( hl_socket *s, vbyte *buf, int pos, int len ) {
 	if( r == SOCKET_ERROR )
 		return block_error();
 	return r;
-#endif
 }
 
 
 HL_PRIM int hl_socket_recv( hl_socket *s, vbyte *buf, int pos, int len ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	int	ret;
 	if( !s )
 		return -2;
@@ -206,13 +186,9 @@ HL_PRIM int hl_socket_recv( hl_socket *s, vbyte *buf, int pos, int len ) {
 	if( ret == SOCKET_ERROR )
 		return block_error();
 	return ret;
-#endif
 }
 
 HL_PRIM int hl_socket_recv_char( hl_socket *s ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	char cc;
 	int ret;
 	if( !s ) return -2;
@@ -224,13 +200,9 @@ HL_PRIM int hl_socket_recv_char( hl_socket *s ) {
 	if( ret == 0 )
 		return -2;
 	return (unsigned char)cc;
-#endif
 }
 
 HL_PRIM int hl_host_resolve( vbyte *host ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	unsigned int ip;
 	hl_blocking(true);
 	ip = inet_addr((char*)host);
@@ -252,23 +224,15 @@ HL_PRIM int hl_host_resolve( vbyte *host ) {
 	}
 	hl_blocking(false);
 	return ip;
-#endif
 }
 
 HL_PRIM vbyte *hl_host_to_string( int ip ) {
-#ifdef HL_PSP
-	return NULL;
-#else
 	struct in_addr i;
 	*(int*)&i = ip;
 	return (vbyte*)inet_ntoa(i);
-#endif
 }
 
 HL_PRIM vbyte *hl_host_reverse( int ip ) {
-#ifdef HL_PSP
-	return NULL;
-#else
 	struct hostent *h;
 	hl_blocking(true);
 #	if defined(HL_WIN) || defined(HL_MAC) || defined(HL_IOS) || defined(HL_TVOS) || defined(HL_CYGWIN) || defined(HL_CONSOLE)
@@ -285,24 +249,16 @@ HL_PRIM vbyte *hl_host_reverse( int ip ) {
 	if( h == NULL )
 		return NULL;
 	return (vbyte*)h->h_name;
-	#endif
 }
 
 HL_PRIM vbyte *hl_host_local() {
-#ifdef HL_PSP
-	return NULL;
-#else
 	char buf[256];
 	if( gethostname(buf,256) == SOCKET_ERROR )
 		return NULL;
 	return hl_copy_bytes((vbyte*)buf,(int)strlen(buf)+1);
-	#endif
 }
 
 HL_PRIM bool hl_socket_connect( hl_socket *s, int host, int port ) {
-#ifdef HL_PSP
-	return false;
-#else
 	struct sockaddr_in addr;
 	memset(&addr,0,sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -318,22 +274,14 @@ HL_PRIM bool hl_socket_connect( hl_socket *s, int host, int port ) {
 	}
 	hl_blocking(false);
 	return true;
-#endif
 }
 
 HL_PRIM bool hl_socket_listen( hl_socket *s, int n ) {
-#ifdef HL_PSP
-	return false;
-#else
 	if( !s ) return false;
 	return listen(s->sock,n) != SOCKET_ERROR;
-#endif
 }
 
 HL_PRIM bool hl_socket_bind( hl_socket *s, int host, int port ) {
-#ifdef HL_PSP
-	return false;
-#else
 	struct sockaddr_in addr;
 	if( !s ) return false;
 	memset(&addr,0,sizeof(addr));
@@ -345,69 +293,62 @@ HL_PRIM bool hl_socket_bind( hl_socket *s, int host, int port ) {
 	setsockopt(s->sock,SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt));
 	#endif
 	return bind(s->sock,(struct sockaddr*)&addr,sizeof(addr)) != SOCKET_ERROR;
-#endif
 }
 
 HL_PRIM hl_socket *hl_socket_accept( hl_socket *s ) {
-#ifdef HL_PSP
-	return NULL;
-#else
 	struct sockaddr_in addr;
+#	ifdef HL_PSP
+	socklen_t addrlen = sizeof(addr);
+#	else
 	_sockaddr addrlen = sizeof(addr);
+#	endif
 	SOCKET nsock;
 	hl_socket *hs;
 	if( !s ) return NULL;
 	hl_blocking(true);
-	nsock = accept(s->sock,(struct sockaddr*)&addr,&addrlen);
+	nsock = accept(s->sock,(struct sockaddr*)&addr, &addrlen);
 	hl_blocking(false);
 	if( nsock == INVALID_SOCKET )
 		return NULL;
 	hs = (hl_socket*)hl_gc_alloc_noptr(sizeof(hl_socket));
 	hs->sock = nsock;
 	return hs;
-#endif
 }
 
 HL_PRIM bool hl_socket_peer( hl_socket *s, int *host, int *port ) {
-#ifdef HL_PSP
-	return false;
-#else
 	struct sockaddr_in addr;
+#	ifdef HL_PSP
+	socklen_t addrlen = sizeof(addr);
+#	else
 	_sockaddr addrlen = sizeof(addr);
+#	endif
 	if( !s || getpeername(s->sock,(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
 		return false;
 	*host = *(int*)&addr.sin_addr;
 	*port = ntohs(addr.sin_port);
 	return true;
-#endif
 }
 
 HL_PRIM bool hl_socket_host( hl_socket *s, int *host, int *port ) {
-#ifdef HL_PSP
-	return false;
-#else
 	struct sockaddr_in addr;
+#	ifdef HL_PSP
+	socklen_t addrlen = sizeof(addr);
+#	else
 	_sockaddr addrlen = sizeof(addr);
+#	endif
 	if( !s || getsockname(s->sock,(struct sockaddr*)&addr,&addrlen) == SOCKET_ERROR )
 		return false;
 	*host = *(int*)&addr.sin_addr;
 	*port = ntohs(addr.sin_port);
 	return true;
-
-#endif
 }
 
-#ifndef HL_PSP
 static void init_timeval( double f, struct timeval *t ) {
 	t->tv_usec = (int)((f - (int)f) * 1000000);
 	t->tv_sec = (int)f;
 }
-#endif
 
 HL_PRIM bool hl_socket_set_timeout( hl_socket *s, double t ) {
-#ifdef HL_PSP
-	return false;
-#else
 #ifdef HL_WIN
 	int time = (int)(t * 1000);
 #else
@@ -420,25 +361,17 @@ HL_PRIM bool hl_socket_set_timeout( hl_socket *s, double t ) {
 	if( setsockopt(s->sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&time,sizeof(time)) != 0 )
 		return false;
 	return true;
-#endif
 }
 
 HL_PRIM bool hl_socket_shutdown( hl_socket *s, bool r, bool w ) {
-#ifdef HL_PSP
-	return false;
-#else
 	if( !s )
 		return false;
 	if( !r && !w )
 		return true;
 	return shutdown(s->sock,r?(w?SHUT_RDWR:SHUT_RD):SHUT_WR) == 0;
-#endif
 }
 
 HL_PRIM bool hl_socket_set_blocking( hl_socket *s, bool b ) {
-#ifdef HL_PSP
-	return false;
-#else
 #ifdef HL_WIN
 	unsigned long arg = b?0:1;
 	if( !s ) return false;
@@ -455,23 +388,15 @@ HL_PRIM bool hl_socket_set_blocking( hl_socket *s, bool b ) {
 		rights |= O_NONBLOCK;
 	return fcntl(s->sock,F_SETFL,rights) != -1;
 #endif
-#endif
 }
 
 HL_PRIM bool hl_socket_set_fast_send( hl_socket *s, bool b ) {
-#ifdef HL_PSP
-	return false;
-#else
 	int fast = b;
 	if( !s ) return false;
 	return setsockopt(s->sock,IPPROTO_TCP,TCP_NODELAY,(char*)&fast,sizeof(fast)) == 0;
-#endif
 }
 
 HL_PRIM int hl_socket_send_to( hl_socket *s, char *data, int len, int host, int port ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	struct sockaddr_in addr;
 	if( !s ) return -2;
 	memset(&addr,0,sizeof(addr));
@@ -482,13 +407,9 @@ HL_PRIM int hl_socket_send_to( hl_socket *s, char *data, int len, int host, int 
 	if( len == SOCKET_ERROR )
 		return block_error();
 	return len;
-#endif
 }
 
 HL_PRIM int hl_socket_recv_from( hl_socket *s, char *data, int len, int *host, int *port ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	struct sockaddr_in saddr;
 	socklen_t slen = sizeof(saddr);
 	if( !s ) return -2;
@@ -506,13 +427,9 @@ HL_PRIM int hl_socket_recv_from( hl_socket *s, char *data, int len, int *host, i
 	*host = *(int*)&saddr.sin_addr;
 	*port = ntohs(saddr.sin_port);
 	return len;
-#endif
 }
 
 HL_PRIM int hl_socket_fd_size( int size ) {
-#ifdef HL_PSP
-	return -1;
-#else
 	if( size > FD_SETSIZE )
 		return -1;
 #	ifdef HL_WIN
@@ -520,10 +437,9 @@ HL_PRIM int hl_socket_fd_size( int size ) {
 #	else
 	return sizeof(fd_set);
 #	endif
-#endif
 }
 
-#ifndef HL_PSP
+
 static fd_set *make_socket_set( varray *a, char **tmp, int *tmp_size, unsigned int *max ) {
 	fd_set *set = (fd_set*)*tmp;
 	int i, req;
@@ -560,12 +476,8 @@ static void make_array_result( fd_set *set, varray *a ) {
 	if( pos < a->size )
 		aptr[pos++] = NULL;
 }
-#endif
 
 HL_PRIM bool hl_socket_select( varray *ra, varray *wa, varray *ea, char *tmp, int tmp_size, double timeout ) {
-#ifdef HL_PSP
-	return false;
-#else
 	struct timeval tval, *tt;
 	fd_set *rs, *ws, *es;
 	unsigned int max = 0;
@@ -593,7 +505,6 @@ HL_PRIM bool hl_socket_select( varray *ra, varray *wa, varray *ea, char *tmp, in
 	make_array_result(ws,wa);
 	make_array_result(es,ea);
 	return true;
-#endif
 }
 
 #define _SOCK	_ABSTRACT(hl_socket)
